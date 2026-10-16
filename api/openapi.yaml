@@ -1,0 +1,3263 @@
+openapi: 3.1.0
+info:
+  contact:
+    email: dev@gox.my.id
+    name: ShionStream Engineering Team
+    url: https://gox.my.id
+  description: Modular anime streaming and metadata API built with Hono on Cloudflare
+    Workers.
+  license:
+    name: Apache-2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+  title: ShionStream API
+  version: 1.0.0
+servers:
+- description: Production Server
+  url: https://api.gox.my.id
+- description: Local Development
+  url: http://localhost:8787
+paths:
+  /health:
+    get:
+      description: Check if the API and Cloudflare D1 database connection are healthy.
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_health_get_200_response"
+          description: Service is operational
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_health_get_500_response"
+          description: Service is degraded
+      summary: Health Check
+      tags:
+      - System
+  /v1/protected/sample:
+    get:
+      description: Example endpoint that requires a valid Better Auth session or Bearer
+        token.
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_protected_sample_get_200_response"
+          description: User is authenticated
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_protected_sample_get_401_response"
+          description: Unauthorized
+      security:
+      - Bearer: []
+      summary: Protected Sample Endpoint
+      tags:
+      - Sample
+  /v1/anime:
+    get:
+      description: "Retrieve paginated list of anime with filters for type, status,\
+        \ season, year, genre, and search."
+      parameters:
+      - explode: true
+        in: query
+        name: page
+        required: false
+        schema:
+          default: "1"
+          type: string
+        style: form
+      - explode: true
+        in: query
+        name: limit
+        required: false
+        schema:
+          default: "20"
+          type: string
+        style: form
+      - explode: true
+        in: query
+        name: search
+        required: false
+        schema:
+          type: string
+        style: form
+      - explode: true
+        in: query
+        name: type
+        required: false
+        schema:
+          type: string
+        style: form
+      - explode: true
+        in: query
+        name: status
+        required: false
+        schema:
+          type: string
+        style: form
+      - explode: true
+        in: query
+        name: genre
+        required: false
+        schema:
+          type: string
+        style: form
+      - explode: true
+        in: query
+        name: season
+        required: false
+        schema:
+          type: string
+        style: form
+      - explode: true
+        in: query
+        name: year
+        required: false
+        schema:
+          type: string
+        style: form
+      - explode: true
+        in: query
+        name: sort
+        required: false
+        schema:
+          default: latest
+          enum:
+          - latest
+          - popular
+          - score
+          type: string
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_anime_get_200_response"
+          description: Paginated anime list
+      summary: List Anime Catalog
+      tags:
+      - Anime
+  /v1/anime/{slug}:
+    get:
+      description: "Retrieve comprehensive anime metadata including associated genres,\
+        \ studios, schedule, and trending stats."
+      parameters:
+      - explode: false
+        in: path
+        name: slug
+        required: true
+        schema:
+          minLength: 1
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_anime__slug__get_200_response"
+          description: Anime detailed metadata
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_protected_sample_get_401_response"
+          description: Anime not found
+      summary: Get Anime Details by Slug
+      tags:
+      - Anime
+  /v1/anime/{slug}/episodes:
+    get:
+      description: Retrieve an ordered list of published episodes for a specific anime.
+      parameters:
+      - explode: false
+        in: path
+        name: slug
+        required: true
+        schema:
+          minLength: 1
+          type: string
+        style: simple
+      - explode: true
+        in: query
+        name: page
+        required: false
+        schema:
+          default: "1"
+          type: string
+        style: form
+      - explode: true
+        in: query
+        name: limit
+        required: false
+        schema:
+          default: "50"
+          type: string
+        style: form
+      - explode: true
+        in: query
+        name: sort
+        required: false
+        schema:
+          default: asc
+          enum:
+          - asc
+          - desc
+          type: string
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_anime__slug__episodes_get_200_response"
+          description: List of anime episodes
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_protected_sample_get_401_response"
+          description: Anime not found
+      summary: List Episodes by Anime Slug
+      tags:
+      - Episodes
+  /v1/episodes/{id}/stream:
+    get:
+      description: "Retrieve video playback manifests, multi-resolution URLs, subtitles,\
+        \ and audio tracks for an episode."
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          minLength: 1
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_episodes__id__stream_get_200_response"
+          description: Stream sources and media tracks
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_protected_sample_get_401_response"
+          description: Episode not found
+      summary: Get Episode Stream Sources
+      tags:
+      - Episodes
+  /v1/user/profile:
+    get:
+      description: Retrieves the authenticated user's profile with activity summary
+        (watchlist count and recent history count).
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_user_profile_get_200_response"
+          description: User profile
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_protected_sample_get_401_response"
+          description: Unauthorized
+      security:
+      - Bearer: []
+      summary: Get User Profile
+      tags:
+      - User
+  /v1/user/settings:
+    get:
+      description: Retrieves player preferences and notification settings for the
+        authenticated user.
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_user_settings_get_200_response"
+          description: User settings
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_protected_sample_get_401_response"
+          description: Unauthorized
+      security:
+      - Bearer: []
+      summary: Get User Settings
+      tags:
+      - User
+    patch:
+      description: Updates player preferences and notification settings.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/_v1_user_settings_patch_request"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_user_settings_patch_200_response"
+          description: Settings updated
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_protected_sample_get_401_response"
+          description: Unauthorized
+      security:
+      - Bearer: []
+      summary: Update User Settings
+      tags:
+      - User
+  /v1/user/watchlist:
+    get:
+      description: Retrieves the authenticated user's anime watchlist with optional
+        status filter.
+      parameters:
+      - explode: true
+        in: query
+        name: status
+        required: false
+        schema:
+          type: string
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_user_watchlist_get_200_response"
+          description: Watchlist items
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_protected_sample_get_401_response"
+          description: Unauthorized
+      security:
+      - Bearer: []
+      summary: Get User Watchlist
+      tags:
+      - User
+    post:
+      description: Adds an anime to the user's watchlist. Upserts if the anime already
+        exists in the watchlist.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/_v1_user_watchlist_post_request"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_user_settings_patch_200_response"
+          description: Added to watchlist
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_protected_sample_get_401_response"
+          description: Unauthorized
+      security:
+      - Bearer: []
+      summary: Add to Watchlist
+      tags:
+      - User
+  /v1/user/watchlist/{animeId}:
+    delete:
+      description: Removes an anime from the user's watchlist.
+      parameters:
+      - explode: false
+        in: path
+        name: animeId
+        required: true
+        schema:
+          minLength: 1
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_user_settings_patch_200_response"
+          description: Removed
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_protected_sample_get_401_response"
+          description: Unauthorized
+      security:
+      - Bearer: []
+      summary: Remove from Watchlist
+      tags:
+      - User
+    patch:
+      description: Updates status or favorite flag for a specific anime in the user's
+        watchlist.
+      parameters:
+      - explode: false
+        in: path
+        name: animeId
+        required: true
+        schema:
+          minLength: 1
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/_v1_user_watchlist__animeId__patch_request"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_user_settings_patch_200_response"
+          description: Watchlist updated
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_protected_sample_get_401_response"
+          description: Unauthorized
+      security:
+      - Bearer: []
+      summary: Update Watchlist Entry
+      tags:
+      - User
+  /v1/user/history:
+    delete:
+      description: Clears the authenticated user's entire watch history.
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_user_settings_patch_200_response"
+          description: History cleared
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_protected_sample_get_401_response"
+          description: Unauthorized
+      security:
+      - Bearer: []
+      summary: Clear All History
+      tags:
+      - User
+    get:
+      description: Retrieves the authenticated user's watch history sorted by most
+        recent.
+      parameters:
+      - explode: true
+        in: query
+        name: limit
+        required: false
+        schema:
+          default: "50"
+          type: string
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_user_history_get_200_response"
+          description: Watch history
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_protected_sample_get_401_response"
+          description: Unauthorized
+      security:
+      - Bearer: []
+      summary: Get Watch History
+      tags:
+      - User
+    post:
+      description: "Records or updates playback progress for an episode (heartbeat).\
+        \ Upserts on [userId, episodeId]."
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/_v1_user_history_post_request"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_user_settings_patch_200_response"
+          description: Progress recorded
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_protected_sample_get_401_response"
+          description: Unauthorized
+      security:
+      - Bearer: []
+      summary: Record Playback Progress
+      tags:
+      - User
+  /v1/user/history/{id}:
+    delete:
+      description: Deletes a single watch history record.
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          minLength: 1
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_user_settings_patch_200_response"
+          description: Deleted
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_protected_sample_get_401_response"
+          description: Unauthorized
+      security:
+      - Bearer: []
+      summary: Delete History Item
+      tags:
+      - User
+  /v1/comments:
+    get:
+      description: "Retrieves threaded comments for an episode, ordered by newest\
+        \ first, with like/dislike counts."
+      parameters:
+      - explode: true
+        in: query
+        name: episodeId
+        required: true
+        schema:
+          minLength: 1
+          type: string
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_comments_get_200_response"
+          description: Comments list
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_protected_sample_get_401_response"
+          description: Missing episodeId
+      summary: Get Episode Comments
+      tags:
+      - Comments
+    post:
+      description: Creates a new comment or reply on an episode. Supports both authenticated
+        users and guests (guest requires name and email).
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/_v1_comments_post_request"
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_comments_post_201_response"
+          description: Comment created
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_protected_sample_get_401_response"
+          description: Validation error
+      summary: Create Comment
+      tags:
+      - Comments
+  /v1/comments/{id}/like:
+    post:
+      description: "Adds or toggles a like/dislike reaction on a comment. Upserts\
+        \ on [commentId, userId]."
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          minLength: 1
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/_v1_comments__id__like_post_request"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_comments__id__like_post_200_response"
+          description: Reaction recorded
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_protected_sample_get_401_response"
+          description: Unauthorized
+      security:
+      - Bearer: []
+      summary: Like or Dislike Comment
+      tags:
+      - Comments
+  /v1/comments/{id}/report:
+    post:
+      description: Submits a comment to the moderation queue with a reason.
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          minLength: 1
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/_v1_comments__id__report_post_request"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_comments__id__like_post_200_response"
+          description: Report submitted
+      summary: Report Comment
+      tags:
+      - Comments
+  /v1/dashboard/stats:
+    get:
+      description: "Returns aggregated platform metrics including anime count, episode\
+        \ count, user count, and storage estimates."
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_dashboard_stats_get_200_response"
+          description: Aggregated stats
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_protected_sample_get_401_response"
+          description: Unauthorized
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_protected_sample_get_401_response"
+          description: Forbidden
+      security:
+      - Bearer: []
+      summary: Get Platform Stats
+      tags:
+      - Dashboard
+  /v1/dashboard/overview:
+    get:
+      description: "Returns traffic telemetry, recent activity logs, and administrative\
+        \ notifications."
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_dashboard_overview_get_200_response"
+          description: Overview data
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_protected_sample_get_401_response"
+          description: Unauthorized
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_protected_sample_get_401_response"
+          description: Forbidden
+      security:
+      - Bearer: []
+      summary: Get Dashboard Overview
+      tags:
+      - Dashboard
+  /v1/dashboard/anime:
+    get:
+      description: Returns paginated anime catalog with filters for administration.
+      parameters:
+      - explode: true
+        in: query
+        name: page
+        required: false
+        schema:
+          default: "1"
+          type: string
+        style: form
+      - explode: true
+        in: query
+        name: limit
+        required: false
+        schema:
+          default: "20"
+          type: string
+        style: form
+      - explode: true
+        in: query
+        name: status
+        required: false
+        schema:
+          type: string
+        style: form
+      - explode: true
+        in: query
+        name: search
+        required: false
+        schema:
+          type: string
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_dashboard_anime_get_200_response"
+          description: Paginated anime list
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_protected_sample_get_401_response"
+          description: Unauthorized
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_protected_sample_get_401_response"
+          description: Forbidden
+      security:
+      - Bearer: []
+      summary: Get Administrative Anime List
+      tags:
+      - Dashboard
+  /v1/dashboard/episodes:
+    get:
+      description: Returns paginated episodes with upload status for administration.
+      parameters:
+      - explode: true
+        in: query
+        name: page
+        required: false
+        schema:
+          default: "1"
+          type: string
+        style: form
+      - explode: true
+        in: query
+        name: limit
+        required: false
+        schema:
+          default: "20"
+          type: string
+        style: form
+      - explode: true
+        in: query
+        name: animeId
+        required: false
+        schema:
+          type: string
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_dashboard_episodes_get_200_response"
+          description: Paginated episodes list
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_protected_sample_get_401_response"
+          description: Unauthorized
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_protected_sample_get_401_response"
+          description: Forbidden
+      security:
+      - Bearer: []
+      summary: Get Administrative Episodes List
+      tags:
+      - Dashboard
+  /v1/dashboard/users:
+    get:
+      description: Returns registered users directory with role and status information.
+      parameters:
+      - explode: true
+        in: query
+        name: page
+        required: false
+        schema:
+          default: "1"
+          type: string
+        style: form
+      - explode: true
+        in: query
+        name: limit
+        required: false
+        schema:
+          default: "20"
+          type: string
+        style: form
+      - explode: true
+        in: query
+        name: role
+        required: false
+        schema:
+          type: string
+        style: form
+      - explode: true
+        in: query
+        name: search
+        required: false
+        schema:
+          type: string
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_dashboard_users_get_200_response"
+          description: Paginated user directory
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_protected_sample_get_401_response"
+          description: Unauthorized
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_protected_sample_get_401_response"
+          description: Forbidden
+      security:
+      - Bearer: []
+      summary: Get Users Directory (Admin Only)
+      tags:
+      - Dashboard
+  /v1/dashboard/categories:
+    get:
+      description: Returns format categories and genres with associated anime counts.
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_dashboard_categories_get_200_response"
+          description: Category and genre statistics
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_protected_sample_get_401_response"
+          description: Unauthorized
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_protected_sample_get_401_response"
+          description: Forbidden
+      security:
+      - Bearer: []
+      summary: Get Category & Genre Distributions
+      tags:
+      - Dashboard
+  /v1/dashboard/seasons:
+    get:
+      description: Returns anime release distribution grouped by season and year.
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_dashboard_seasons_get_200_response"
+          description: Seasonal distribution
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_protected_sample_get_401_response"
+          description: Unauthorized
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_protected_sample_get_401_response"
+          description: Forbidden
+      security:
+      - Bearer: []
+      summary: Get Seasonal Broadcast Distributions
+      tags:
+      - Dashboard
+  /v1/dashboard/roles:
+    get:
+      description: Returns role definitions and active user member counts.
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_dashboard_roles_get_200_response"
+          description: Role definitions
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_protected_sample_get_401_response"
+          description: Unauthorized
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_protected_sample_get_401_response"
+          description: Forbidden
+      security:
+      - Bearer: []
+      summary: Get System Roles & Permissions
+      tags:
+      - Dashboard
+  /v1/dashboard/moderation:
+    get:
+      description: Returns reported comments queue with status filter.
+      parameters:
+      - explode: true
+        in: query
+        name: status
+        required: false
+        schema:
+          default: pending
+          enum:
+          - pending
+          - resolved
+          - dismissed
+          type: string
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_dashboard_moderation_get_200_response"
+          description: Moderation reports list
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_protected_sample_get_401_response"
+          description: Unauthorized
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_protected_sample_get_401_response"
+          description: Forbidden
+      security:
+      - Bearer: []
+      summary: Get Comment Moderation Reports
+      tags:
+      - Dashboard
+  /v1/dashboard/moderation/{id}:
+    patch:
+      description: Updates comment report status and optionally deletes the reported
+        comment.
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/_v1_dashboard_moderation__id__patch_request"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_user_settings_patch_200_response"
+          description: Report updated
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_protected_sample_get_401_response"
+          description: Unauthorized
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_protected_sample_get_401_response"
+          description: Forbidden
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_protected_sample_get_401_response"
+          description: Not found
+      security:
+      - Bearer: []
+      summary: Resolve or Dismiss Moderation Report
+      tags:
+      - Dashboard
+  /v1/upload/hls:
+    post:
+      description: "Ingests multi-resolution HLS package (master playlist, variants,\
+        \ and .ts segment chunks) directly into Cloudflare R2 object storage."
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_upload_hls_post_200_response"
+          description: HLS package successfully uploaded
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_protected_sample_get_401_response"
+          description: Bad request
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_protected_sample_get_401_response"
+          description: Unauthorized
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_protected_sample_get_401_response"
+          description: Forbidden
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_protected_sample_get_401_response"
+          description: Internal upload failure
+      security:
+      - Bearer: []
+      summary: Upload HLS Package to Cloudflare R2
+      tags:
+      - Upload
+  /v1/upload/image:
+    post:
+      description: "Uploads posters, banners, or avatars directly to Cloudflare R2."
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_upload_image_post_200_response"
+          description: Image successfully uploaded
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_protected_sample_get_401_response"
+          description: Bad request
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_protected_sample_get_401_response"
+          description: Unauthorized
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_protected_sample_get_401_response"
+          description: Forbidden
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/_v1_protected_sample_get_401_response"
+          description: Internal upload failure
+      security:
+      - Bearer: []
+      summary: Upload Image to Cloudflare R2
+      tags:
+      - Upload
+components:
+  parameters: {}
+  schemas:
+    _health_get_200_response:
+      example:
+        status: ok
+        timestamp: timestamp
+        database: database
+      properties:
+        status:
+          enum:
+          - ok
+          - degraded
+          type: string
+        timestamp:
+          type: string
+        database:
+          type: string
+      required:
+      - database
+      - status
+      - timestamp
+    _health_get_500_response:
+      example:
+        status: ok
+        timestamp: timestamp
+        database: database
+        error: error
+      properties:
+        status:
+          enum:
+          - ok
+          - degraded
+          type: string
+        timestamp:
+          type: string
+        database:
+          type: string
+        error:
+          type: string
+      required:
+      - database
+      - status
+      - timestamp
+    _v1_protected_sample_get_200_response_user:
+      example:
+        id: id
+        name: name
+        email: email
+        role: role
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+      required:
+      - email
+      - id
+      - name
+      - role
+    _v1_protected_sample_get_200_response:
+      example:
+        success: true
+        message: message
+        user:
+          id: id
+          name: name
+          email: email
+          role: role
+      properties:
+        success:
+          enum:
+          - true
+          type: boolean
+        message:
+          type: string
+        user:
+          $ref: "#/components/schemas/_v1_protected_sample_get_200_response_user"
+      required:
+      - message
+      - success
+      - user
+    _v1_protected_sample_get_401_response:
+      example:
+        success: true
+        error: error
+      properties:
+        success:
+          enum:
+          - false
+          type: boolean
+        error:
+          type: string
+      required:
+      - error
+      - success
+    _v1_anime_get_200_response_data_inner:
+      example:
+        id: id
+        slug: slug
+        titleRomaji: titleRomaji
+        titleEnglish: titleEnglish
+        titleJapanese: titleJapanese
+        synopsis: synopsis
+        coverImage: coverImage
+        bannerImage: bannerImage
+        type: type
+        status: status
+        seasonName: seasonName
+        seasonYear: 0.8008281904610115
+        episodesCount: 6.027456183070403
+        durationPerEp: durationPerEp
+        rating: 1.4658129805029452
+        isFeatured: true
+        isTrending: true
+        subOrDub: subOrDub
+      properties:
+        id:
+          type: string
+        slug:
+          type: string
+        titleRomaji:
+          type: string
+        titleEnglish:
+          type: string
+          nullable: true
+        titleJapanese:
+          type: string
+          nullable: true
+        synopsis:
+          type: string
+          nullable: true
+        coverImage:
+          type: string
+          nullable: true
+        bannerImage:
+          type: string
+          nullable: true
+        type:
+          type: string
+        status:
+          type: string
+        seasonName:
+          type: string
+          nullable: true
+        seasonYear:
+          type: number
+          nullable: true
+        episodesCount:
+          type: number
+        durationPerEp:
+          type: string
+          nullable: true
+        rating:
+          type: number
+          nullable: true
+        isFeatured:
+          type: boolean
+        isTrending:
+          type: boolean
+        subOrDub:
+          type: string
+      required:
+      - episodesCount
+      - id
+      - isFeatured
+      - isTrending
+      - slug
+      - status
+      - subOrDub
+      - titleRomaji
+      - type
+    _v1_anime_get_200_response_pagination:
+      example:
+        page: 5.962133916683182
+        limit: 5.637376656633329
+        total: 2.3021358869347655
+        totalPages: 7.061401241503109
+      properties:
+        page:
+          type: number
+        limit:
+          type: number
+        total:
+          type: number
+        totalPages:
+          type: number
+      required:
+      - limit
+      - page
+      - total
+      - totalPages
+    _v1_anime_get_200_response:
+      example:
+        success: true
+        data:
+        - id: id
+          slug: slug
+          titleRomaji: titleRomaji
+          titleEnglish: titleEnglish
+          titleJapanese: titleJapanese
+          synopsis: synopsis
+          coverImage: coverImage
+          bannerImage: bannerImage
+          type: type
+          status: status
+          seasonName: seasonName
+          seasonYear: 0.8008281904610115
+          episodesCount: 6.027456183070403
+          durationPerEp: durationPerEp
+          rating: 1.4658129805029452
+          isFeatured: true
+          isTrending: true
+          subOrDub: subOrDub
+        - id: id
+          slug: slug
+          titleRomaji: titleRomaji
+          titleEnglish: titleEnglish
+          titleJapanese: titleJapanese
+          synopsis: synopsis
+          coverImage: coverImage
+          bannerImage: bannerImage
+          type: type
+          status: status
+          seasonName: seasonName
+          seasonYear: 0.8008281904610115
+          episodesCount: 6.027456183070403
+          durationPerEp: durationPerEp
+          rating: 1.4658129805029452
+          isFeatured: true
+          isTrending: true
+          subOrDub: subOrDub
+        pagination:
+          page: 5.962133916683182
+          limit: 5.637376656633329
+          total: 2.3021358869347655
+          totalPages: 7.061401241503109
+      properties:
+        success:
+          enum:
+          - true
+          type: boolean
+        data:
+          items:
+            $ref: "#/components/schemas/_v1_anime_get_200_response_data_inner"
+          type: array
+          default: null
+        pagination:
+          $ref: "#/components/schemas/_v1_anime_get_200_response_pagination"
+      required:
+      - data
+      - pagination
+      - success
+    _v1_anime__slug__get_200_response_data_genres_inner:
+      example:
+        id: id
+        name: name
+        slug: slug
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        slug:
+          type: string
+      required:
+      - id
+      - name
+      - slug
+    _v1_anime__slug__get_200_response_data_schedule:
+      example:
+        releaseDay: releaseDay
+        releaseTime: releaseTime
+        episodeNumber: 5.962133916683182
+        status: status
+        timezone: timezone
+      properties:
+        releaseDay:
+          type: string
+        releaseTime:
+          type: string
+        episodeNumber:
+          type: number
+          nullable: true
+        status:
+          type: string
+        timezone:
+          type: string
+      required:
+      - releaseDay
+      - releaseTime
+      - status
+      - timezone
+      nullable: true
+    _v1_anime__slug__get_200_response_data_trendingStats:
+      example:
+        rank: 5.637376656633329
+        trendScore: 2.3021358869347655
+        totalViews: 7.061401241503109
+      properties:
+        rank:
+          type: number
+        trendScore:
+          type: number
+        totalViews:
+          type: number
+      required:
+      - rank
+      - totalViews
+      - trendScore
+      nullable: true
+    _v1_anime__slug__get_200_response_data:
+      example:
+        id: id
+        slug: slug
+        titleRomaji: titleRomaji
+        titleEnglish: titleEnglish
+        titleJapanese: titleJapanese
+        synopsis: synopsis
+        coverImage: coverImage
+        bannerImage: bannerImage
+        type: type
+        status: status
+        seasonName: seasonName
+        seasonYear: 0.8008281904610115
+        episodesCount: 6.027456183070403
+        durationPerEp: durationPerEp
+        rating: 1.4658129805029452
+        isFeatured: true
+        isTrending: true
+        subOrDub: subOrDub
+        genres:
+        - id: id
+          name: name
+          slug: slug
+        - id: id
+          name: name
+          slug: slug
+        studios:
+        - id: id
+          name: name
+          slug: slug
+        - id: id
+          name: name
+          slug: slug
+        schedule:
+          releaseDay: releaseDay
+          releaseTime: releaseTime
+          episodeNumber: 5.962133916683182
+          status: status
+          timezone: timezone
+        trendingStats:
+          rank: 5.637376656633329
+          trendScore: 2.3021358869347655
+          totalViews: 7.061401241503109
+      properties:
+        id:
+          type: string
+        slug:
+          type: string
+        titleRomaji:
+          type: string
+        titleEnglish:
+          type: string
+          nullable: true
+        titleJapanese:
+          type: string
+          nullable: true
+        synopsis:
+          type: string
+          nullable: true
+        coverImage:
+          type: string
+          nullable: true
+        bannerImage:
+          type: string
+          nullable: true
+        type:
+          type: string
+        status:
+          type: string
+        seasonName:
+          type: string
+          nullable: true
+        seasonYear:
+          type: number
+          nullable: true
+        episodesCount:
+          type: number
+        durationPerEp:
+          type: string
+          nullable: true
+        rating:
+          type: number
+          nullable: true
+        isFeatured:
+          type: boolean
+        isTrending:
+          type: boolean
+        subOrDub:
+          type: string
+        genres:
+          items:
+            $ref: "#/components/schemas/_v1_anime__slug__get_200_response_data_genres_inner"
+          type: array
+          default: null
+        studios:
+          items:
+            $ref: "#/components/schemas/_v1_anime__slug__get_200_response_data_genres_inner"
+          type: array
+          default: null
+        schedule:
+          $ref: "#/components/schemas/_v1_anime__slug__get_200_response_data_schedule"
+        trendingStats:
+          $ref: "#/components/schemas/_v1_anime__slug__get_200_response_data_trendingStats"
+      required:
+      - episodesCount
+      - genres
+      - id
+      - isFeatured
+      - isTrending
+      - slug
+      - status
+      - studios
+      - subOrDub
+      - titleRomaji
+      - type
+    _v1_anime__slug__get_200_response:
+      example:
+        success: true
+        data:
+          id: id
+          slug: slug
+          titleRomaji: titleRomaji
+          titleEnglish: titleEnglish
+          titleJapanese: titleJapanese
+          synopsis: synopsis
+          coverImage: coverImage
+          bannerImage: bannerImage
+          type: type
+          status: status
+          seasonName: seasonName
+          seasonYear: 0.8008281904610115
+          episodesCount: 6.027456183070403
+          durationPerEp: durationPerEp
+          rating: 1.4658129805029452
+          isFeatured: true
+          isTrending: true
+          subOrDub: subOrDub
+          genres:
+          - id: id
+            name: name
+            slug: slug
+          - id: id
+            name: name
+            slug: slug
+          studios:
+          - id: id
+            name: name
+            slug: slug
+          - id: id
+            name: name
+            slug: slug
+          schedule:
+            releaseDay: releaseDay
+            releaseTime: releaseTime
+            episodeNumber: 5.962133916683182
+            status: status
+            timezone: timezone
+          trendingStats:
+            rank: 5.637376656633329
+            trendScore: 2.3021358869347655
+            totalViews: 7.061401241503109
+      properties:
+        success:
+          enum:
+          - true
+          type: boolean
+        data:
+          $ref: "#/components/schemas/_v1_anime__slug__get_200_response_data"
+      required:
+      - data
+      - success
+    _v1_anime__slug__episodes_get_200_response_anime:
+      example:
+        id: id
+        slug: slug
+        titleRomaji: titleRomaji
+      properties:
+        id:
+          type: string
+        slug:
+          type: string
+        titleRomaji:
+          type: string
+      required:
+      - id
+      - slug
+      - titleRomaji
+    _v1_anime__slug__episodes_get_200_response_data_inner:
+      example:
+        id: id
+        number: 0.8008281904610115
+        title: title
+        durationSeconds: 6.027456183070403
+        thumbnail: thumbnail
+        airDate: airDate
+        status: status
+        viewsCount: 1.4658129805029452
+        isVip: true
+        createdAt: createdAt
+      properties:
+        id:
+          type: string
+        number:
+          type: number
+        title:
+          type: string
+        durationSeconds:
+          type: number
+        thumbnail:
+          type: string
+          nullable: true
+        airDate:
+          type: string
+          nullable: true
+        status:
+          type: string
+        viewsCount:
+          type: number
+        isVip:
+          type: boolean
+        createdAt:
+          type: string
+      required:
+      - createdAt
+      - durationSeconds
+      - id
+      - isVip
+      - number
+      - status
+      - title
+      - viewsCount
+    _v1_anime__slug__episodes_get_200_response:
+      example:
+        success: true
+        anime:
+          id: id
+          slug: slug
+          titleRomaji: titleRomaji
+        data:
+        - id: id
+          number: 0.8008281904610115
+          title: title
+          durationSeconds: 6.027456183070403
+          thumbnail: thumbnail
+          airDate: airDate
+          status: status
+          viewsCount: 1.4658129805029452
+          isVip: true
+          createdAt: createdAt
+        - id: id
+          number: 0.8008281904610115
+          title: title
+          durationSeconds: 6.027456183070403
+          thumbnail: thumbnail
+          airDate: airDate
+          status: status
+          viewsCount: 1.4658129805029452
+          isVip: true
+          createdAt: createdAt
+        pagination:
+          page: 5.962133916683182
+          limit: 5.637376656633329
+          total: 2.3021358869347655
+          totalPages: 7.061401241503109
+      properties:
+        success:
+          enum:
+          - true
+          type: boolean
+        anime:
+          $ref: "#/components/schemas/_v1_anime__slug__episodes_get_200_response_anime"
+        data:
+          items:
+            $ref: "#/components/schemas/_v1_anime__slug__episodes_get_200_response_data_inner"
+          type: array
+          default: null
+        pagination:
+          $ref: "#/components/schemas/_v1_anime_get_200_response_pagination"
+      required:
+      - anime
+      - data
+      - pagination
+      - success
+    _v1_episodes__id__stream_get_200_response_episode:
+      example:
+        id: id
+        animeId: animeId
+        number: 0.8008281904610115
+        title: title
+      properties:
+        id:
+          type: string
+        animeId:
+          type: string
+        number:
+          type: number
+        title:
+          type: string
+      required:
+      - animeId
+      - id
+      - number
+      - title
+    _v1_episodes__id__stream_get_200_response_sources_inner:
+      example:
+        id: id
+        serverName: serverName
+        streamUrl: streamUrl
+        format: format
+        quality: quality
+        url1080p: url1080p
+        url720p: url720p
+        url480p: url480p
+        url360p: url360p
+        isPrimary: true
+      properties:
+        id:
+          type: string
+        serverName:
+          type: string
+          nullable: true
+        streamUrl:
+          type: string
+        format:
+          type: string
+        quality:
+          type: string
+        url1080p:
+          type: string
+          nullable: true
+        url720p:
+          type: string
+          nullable: true
+        url480p:
+          type: string
+          nullable: true
+        url360p:
+          type: string
+          nullable: true
+        isPrimary:
+          type: boolean
+      required:
+      - format
+      - id
+      - isPrimary
+      - quality
+      - streamUrl
+    _v1_episodes__id__stream_get_200_response_subtitles_inner:
+      example:
+        id: id
+        label: label
+        languageCode: languageCode
+        fileUrl: fileUrl
+        format: format
+        isDefault: true
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        languageCode:
+          type: string
+        fileUrl:
+          type: string
+        format:
+          type: string
+        isDefault:
+          type: boolean
+      required:
+      - fileUrl
+      - format
+      - id
+      - isDefault
+      - label
+      - languageCode
+    _v1_episodes__id__stream_get_200_response_audio_inner:
+      example:
+        id: id
+        label: label
+        languageCode: languageCode
+        audioUrl: audioUrl
+        type: type
+        isDefault: true
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        languageCode:
+          type: string
+        audioUrl:
+          type: string
+        type:
+          type: string
+        isDefault:
+          type: boolean
+      required:
+      - audioUrl
+      - id
+      - isDefault
+      - label
+      - languageCode
+      - type
+    _v1_episodes__id__stream_get_200_response:
+      example:
+        success: true
+        episode:
+          id: id
+          animeId: animeId
+          number: 0.8008281904610115
+          title: title
+        sources:
+        - id: id
+          serverName: serverName
+          streamUrl: streamUrl
+          format: format
+          quality: quality
+          url1080p: url1080p
+          url720p: url720p
+          url480p: url480p
+          url360p: url360p
+          isPrimary: true
+        - id: id
+          serverName: serverName
+          streamUrl: streamUrl
+          format: format
+          quality: quality
+          url1080p: url1080p
+          url720p: url720p
+          url480p: url480p
+          url360p: url360p
+          isPrimary: true
+        subtitles:
+        - id: id
+          label: label
+          languageCode: languageCode
+          fileUrl: fileUrl
+          format: format
+          isDefault: true
+        - id: id
+          label: label
+          languageCode: languageCode
+          fileUrl: fileUrl
+          format: format
+          isDefault: true
+        audio:
+        - id: id
+          label: label
+          languageCode: languageCode
+          audioUrl: audioUrl
+          type: type
+          isDefault: true
+        - id: id
+          label: label
+          languageCode: languageCode
+          audioUrl: audioUrl
+          type: type
+          isDefault: true
+      properties:
+        success:
+          enum:
+          - true
+          type: boolean
+        episode:
+          $ref: "#/components/schemas/_v1_episodes__id__stream_get_200_response_episode"
+        sources:
+          items:
+            $ref: "#/components/schemas/_v1_episodes__id__stream_get_200_response_sources_inner"
+          type: array
+          default: null
+        subtitles:
+          items:
+            $ref: "#/components/schemas/_v1_episodes__id__stream_get_200_response_subtitles_inner"
+          type: array
+          default: null
+        audio:
+          items:
+            $ref: "#/components/schemas/_v1_episodes__id__stream_get_200_response_audio_inner"
+          type: array
+          default: null
+      required:
+      - audio
+      - episode
+      - sources
+      - subtitles
+      - success
+    _v1_user_profile_get_200_response_data_activity:
+      example:
+        watchlistCount: 0.8008281904610115
+        historyCount: 6.027456183070403
+      properties:
+        watchlistCount:
+          type: number
+        historyCount:
+          type: number
+      required:
+      - historyCount
+      - watchlistCount
+    _v1_user_profile_get_200_response_data:
+      example:
+        id: id
+        name: name
+        email: email
+        image: image
+        role: role
+        activity:
+          watchlistCount: 0.8008281904610115
+          historyCount: 6.027456183070403
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        image:
+          type: string
+          nullable: true
+        role:
+          type: string
+        activity:
+          $ref: "#/components/schemas/_v1_user_profile_get_200_response_data_activity"
+      required:
+      - activity
+      - email
+      - id
+      - name
+      - role
+    _v1_user_profile_get_200_response:
+      example:
+        success: true
+        data:
+          id: id
+          name: name
+          email: email
+          image: image
+          role: role
+          activity:
+            watchlistCount: 0.8008281904610115
+            historyCount: 6.027456183070403
+      properties:
+        success:
+          enum:
+          - true
+          type: boolean
+        data:
+          $ref: "#/components/schemas/_v1_user_profile_get_200_response_data"
+      required:
+      - data
+      - success
+    _v1_user_settings_get_200_response_data_player:
+      example:
+        defaultQuality: defaultQuality
+        defaultSubtitle: defaultSubtitle
+        autoPlayNext: true
+        autoSkipIntro: true
+        preferredAudio: preferredAudio
+      properties:
+        defaultQuality:
+          type: string
+        defaultSubtitle:
+          type: string
+        autoPlayNext:
+          type: boolean
+        autoSkipIntro:
+          type: boolean
+        preferredAudio:
+          type: string
+      required:
+      - autoPlayNext
+      - autoSkipIntro
+      - defaultQuality
+      - defaultSubtitle
+      - preferredAudio
+    _v1_user_settings_get_200_response_data_notifications:
+      example:
+        newEpisodeAlerts: true
+        watchlistUpdates: true
+        marketingEmails: true
+        publicWatchlist: true
+      properties:
+        newEpisodeAlerts:
+          type: boolean
+        watchlistUpdates:
+          type: boolean
+        marketingEmails:
+          type: boolean
+        publicWatchlist:
+          type: boolean
+      required:
+      - marketingEmails
+      - newEpisodeAlerts
+      - publicWatchlist
+      - watchlistUpdates
+    _v1_user_settings_get_200_response_data:
+      example:
+        player:
+          defaultQuality: defaultQuality
+          defaultSubtitle: defaultSubtitle
+          autoPlayNext: true
+          autoSkipIntro: true
+          preferredAudio: preferredAudio
+        notifications:
+          newEpisodeAlerts: true
+          watchlistUpdates: true
+          marketingEmails: true
+          publicWatchlist: true
+      properties:
+        player:
+          $ref: "#/components/schemas/_v1_user_settings_get_200_response_data_player"
+        notifications:
+          $ref: "#/components/schemas/_v1_user_settings_get_200_response_data_notifications"
+      required:
+      - notifications
+      - player
+    _v1_user_settings_get_200_response:
+      example:
+        success: true
+        data:
+          player:
+            defaultQuality: defaultQuality
+            defaultSubtitle: defaultSubtitle
+            autoPlayNext: true
+            autoSkipIntro: true
+            preferredAudio: preferredAudio
+          notifications:
+            newEpisodeAlerts: true
+            watchlistUpdates: true
+            marketingEmails: true
+            publicWatchlist: true
+      properties:
+        success:
+          enum:
+          - true
+          type: boolean
+        data:
+          $ref: "#/components/schemas/_v1_user_settings_get_200_response_data"
+      required:
+      - data
+      - success
+    _v1_user_settings_patch_request_profile:
+      properties:
+        displayName:
+          type: string
+        bio:
+          type: string
+        avatarUrl:
+          type: string
+    _v1_user_settings_patch_request_player:
+      properties:
+        defaultQuality:
+          type: string
+        defaultSubtitle:
+          type: string
+        autoPlayNext:
+          type: boolean
+        autoSkipIntro:
+          type: boolean
+        preferredAudio:
+          type: string
+    _v1_user_settings_patch_request_notifications:
+      properties:
+        newEpisodeAlerts:
+          type: boolean
+        watchlistUpdates:
+          type: boolean
+        marketingEmails:
+          type: boolean
+        publicWatchlist:
+          type: boolean
+    _v1_user_settings_patch_request:
+      properties:
+        profile:
+          $ref: "#/components/schemas/_v1_user_settings_patch_request_profile"
+        player:
+          $ref: "#/components/schemas/_v1_user_settings_patch_request_player"
+        notifications:
+          $ref: "#/components/schemas/_v1_user_settings_patch_request_notifications"
+    _v1_user_settings_patch_200_response:
+      example:
+        success: true
+        message: message
+      properties:
+        success:
+          enum:
+          - true
+          type: boolean
+        message:
+          type: string
+      required:
+      - success
+    _v1_user_watchlist_get_200_response_data_inner:
+      example:
+        id: id
+        animeId: animeId
+        status: status
+        isFavorite: true
+        currentEpisode: 0.8008281904610115
+        userRating: 6.027456183070403
+        createdAt: createdAt
+        updatedAt: updatedAt
+      properties:
+        id:
+          type: string
+        animeId:
+          type: string
+        status:
+          type: string
+        isFavorite:
+          type: boolean
+        currentEpisode:
+          type: number
+        userRating:
+          type: number
+          nullable: true
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+      - animeId
+      - createdAt
+      - currentEpisode
+      - id
+      - isFavorite
+      - status
+      - updatedAt
+    _v1_user_watchlist_get_200_response:
+      example:
+        success: true
+        data:
+        - id: id
+          animeId: animeId
+          status: status
+          isFavorite: true
+          currentEpisode: 0.8008281904610115
+          userRating: 6.027456183070403
+          createdAt: createdAt
+          updatedAt: updatedAt
+        - id: id
+          animeId: animeId
+          status: status
+          isFavorite: true
+          currentEpisode: 0.8008281904610115
+          userRating: 6.027456183070403
+          createdAt: createdAt
+          updatedAt: updatedAt
+      properties:
+        success:
+          enum:
+          - true
+          type: boolean
+        data:
+          items:
+            $ref: "#/components/schemas/_v1_user_watchlist_get_200_response_data_inner"
+          type: array
+          default: null
+      required:
+      - data
+      - success
+    _v1_user_watchlist_post_request:
+      properties:
+        animeId:
+          minLength: 1
+          type: string
+        status:
+          default: plan_to_watch
+          type: string
+      required:
+      - animeId
+    _v1_user_watchlist__animeId__patch_request:
+      properties:
+        status:
+          type: string
+        isFavorite:
+          type: boolean
+    _v1_user_history_get_200_response_data_inner:
+      example:
+        id: id
+        animeId: animeId
+        episodeId: episodeId
+        episodeNumber: 0.8008281904610115
+        progressPercent: 6.027456183070403
+        durationSeconds: 1.4658129805029452
+        progressSeconds: 5.962133916683182
+        lastWatchedAt: lastWatchedAt
+      properties:
+        id:
+          type: string
+        animeId:
+          type: string
+        episodeId:
+          type: string
+        episodeNumber:
+          type: number
+          nullable: true
+        progressPercent:
+          type: number
+        durationSeconds:
+          type: number
+        progressSeconds:
+          type: number
+        lastWatchedAt:
+          type: string
+      required:
+      - animeId
+      - durationSeconds
+      - episodeId
+      - id
+      - lastWatchedAt
+      - progressPercent
+      - progressSeconds
+    _v1_user_history_get_200_response:
+      example:
+        success: true
+        data:
+        - id: id
+          animeId: animeId
+          episodeId: episodeId
+          episodeNumber: 0.8008281904610115
+          progressPercent: 6.027456183070403
+          durationSeconds: 1.4658129805029452
+          progressSeconds: 5.962133916683182
+          lastWatchedAt: lastWatchedAt
+        - id: id
+          animeId: animeId
+          episodeId: episodeId
+          episodeNumber: 0.8008281904610115
+          progressPercent: 6.027456183070403
+          durationSeconds: 1.4658129805029452
+          progressSeconds: 5.962133916683182
+          lastWatchedAt: lastWatchedAt
+      properties:
+        success:
+          enum:
+          - true
+          type: boolean
+        data:
+          items:
+            $ref: "#/components/schemas/_v1_user_history_get_200_response_data_inner"
+          type: array
+          default: null
+      required:
+      - data
+      - success
+    _v1_user_history_post_request:
+      properties:
+        animeId:
+          minLength: 1
+          type: string
+        episodeId:
+          minLength: 1
+          type: string
+        episodeNumber:
+          type: number
+        progressPercent:
+          default: 0
+          maximum: 100
+          minimum: 0
+          type: number
+        durationSeconds:
+          default: 0
+          minimum: 0
+          type: number
+        progressSeconds:
+          default: 0
+          minimum: 0
+          type: number
+      required:
+      - animeId
+      - episodeId
+    _v1_comments_get_200_response_data_inner:
+      example:
+        id: id
+        animeId: animeId
+        episodeId: episodeId
+        userId: userId
+        guestName: guestName
+        parentId: parentId
+        content: content
+        isSpoiler: true
+        createdAt: createdAt
+        updatedAt: updatedAt
+        likes: 0.8008281904610115
+        dislikes: 6.027456183070403
+      properties:
+        id:
+          type: string
+        animeId:
+          type: string
+        episodeId:
+          type: string
+        userId:
+          type: string
+          nullable: true
+        guestName:
+          type: string
+          nullable: true
+        parentId:
+          type: string
+          nullable: true
+        content:
+          type: string
+        isSpoiler:
+          type: boolean
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+        likes:
+          type: number
+        dislikes:
+          type: number
+      required:
+      - animeId
+      - content
+      - createdAt
+      - dislikes
+      - episodeId
+      - id
+      - isSpoiler
+      - likes
+      - updatedAt
+    _v1_comments_get_200_response:
+      example:
+        success: true
+        data:
+        - id: id
+          animeId: animeId
+          episodeId: episodeId
+          userId: userId
+          guestName: guestName
+          parentId: parentId
+          content: content
+          isSpoiler: true
+          createdAt: createdAt
+          updatedAt: updatedAt
+          likes: 0.8008281904610115
+          dislikes: 6.027456183070403
+        - id: id
+          animeId: animeId
+          episodeId: episodeId
+          userId: userId
+          guestName: guestName
+          parentId: parentId
+          content: content
+          isSpoiler: true
+          createdAt: createdAt
+          updatedAt: updatedAt
+          likes: 0.8008281904610115
+          dislikes: 6.027456183070403
+      properties:
+        success:
+          enum:
+          - true
+          type: boolean
+        data:
+          items:
+            $ref: "#/components/schemas/_v1_comments_get_200_response_data_inner"
+          type: array
+          default: null
+      required:
+      - data
+      - success
+    _v1_comments_post_request:
+      properties:
+        animeId:
+          minLength: 1
+          type: string
+        episodeId:
+          minLength: 1
+          type: string
+        content:
+          maxLength: 2000
+          minLength: 1
+          type: string
+        parentId:
+          type: string
+        isSpoiler:
+          default: false
+          type: boolean
+        guestName:
+          type: string
+        guestEmail:
+          format: email
+          type: string
+      required:
+      - animeId
+      - content
+      - episodeId
+    _v1_comments_post_201_response:
+      example:
+        success: true
+        data:
+          id: id
+          animeId: animeId
+          episodeId: episodeId
+          userId: userId
+          guestName: guestName
+          parentId: parentId
+          content: content
+          isSpoiler: true
+          createdAt: createdAt
+          updatedAt: updatedAt
+          likes: 0.8008281904610115
+          dislikes: 6.027456183070403
+      properties:
+        success:
+          enum:
+          - true
+          type: boolean
+        data:
+          $ref: "#/components/schemas/_v1_comments_get_200_response_data_inner"
+      required:
+      - data
+      - success
+    _v1_comments__id__like_post_request:
+      properties:
+        isDislike:
+          default: false
+          type: boolean
+    _v1_comments__id__like_post_200_response:
+      example:
+        success: true
+        message: message
+      properties:
+        success:
+          enum:
+          - true
+          type: boolean
+        message:
+          type: string
+      required:
+      - message
+      - success
+    _v1_comments__id__report_post_request:
+      properties:
+        reason:
+          maxLength: 500
+          minLength: 1
+          type: string
+      required:
+      - reason
+    _v1_dashboard_stats_get_200_response_stats:
+      example:
+        totalAnime: 0.8008281904610115
+        totalEpisodes: 6.027456183070403
+        totalUsers: 1.4658129805029452
+        pendingReports: 5.962133916683182
+        activeStreams: 5.637376656633329
+        bandwidthUsageGb: 2.3021358869347655
+        cpuLoadPercent: 7.061401241503109
+        storageUsedGb: 9.301444243932576
+        monthlyGrowthPercent: 3.616076749251911
+      properties:
+        totalAnime:
+          type: number
+        totalEpisodes:
+          type: number
+        totalUsers:
+          type: number
+        pendingReports:
+          type: number
+        activeStreams:
+          type: number
+        bandwidthUsageGb:
+          type: number
+        cpuLoadPercent:
+          type: number
+        storageUsedGb:
+          type: number
+        monthlyGrowthPercent:
+          type: number
+      required:
+      - activeStreams
+      - bandwidthUsageGb
+      - cpuLoadPercent
+      - monthlyGrowthPercent
+      - pendingReports
+      - storageUsedGb
+      - totalAnime
+      - totalEpisodes
+      - totalUsers
+    _v1_dashboard_stats_get_200_response:
+      example:
+        stats:
+          totalAnime: 0.8008281904610115
+          totalEpisodes: 6.027456183070403
+          totalUsers: 1.4658129805029452
+          pendingReports: 5.962133916683182
+          activeStreams: 5.637376656633329
+          bandwidthUsageGb: 2.3021358869347655
+          cpuLoadPercent: 7.061401241503109
+          storageUsedGb: 9.301444243932576
+          monthlyGrowthPercent: 3.616076749251911
+      properties:
+        stats:
+          $ref: "#/components/schemas/_v1_dashboard_stats_get_200_response_stats"
+      required:
+      - stats
+    _v1_dashboard_overview_get_200_response_trafficData_inner:
+      example:
+        time: time
+        activeStreams: 0.8008281904610115
+        bandwidthGbps: 6.027456183070403
+      properties:
+        time:
+          type: string
+        activeStreams:
+          type: number
+        bandwidthGbps:
+          type: number
+      required:
+      - activeStreams
+      - bandwidthGbps
+      - time
+    _v1_dashboard_overview_get_200_response_recentActivities_inner:
+      example:
+        id: id
+        user: user
+        action: action
+        target: target
+        time: time
+        type: upload
+      properties:
+        id:
+          type: string
+        user:
+          type: string
+        action:
+          type: string
+        target:
+          type: string
+        time:
+          type: string
+        type:
+          enum:
+          - upload
+          - delete
+          - edit
+          - user
+          - stream
+          type: string
+      required:
+      - action
+      - id
+      - target
+      - time
+      - type
+      - user
+    _v1_dashboard_overview_get_200_response_notifications_inner:
+      example:
+        id: id
+        title: title
+        description: description
+        time: time
+        type: success
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        time:
+          type: string
+        type:
+          enum:
+          - success
+          - alert
+          - info
+          type: string
+      required:
+      - description
+      - id
+      - time
+      - title
+      - type
+    _v1_dashboard_overview_get_200_response:
+      example:
+        trafficData:
+        - time: time
+          activeStreams: 0.8008281904610115
+          bandwidthGbps: 6.027456183070403
+        - time: time
+          activeStreams: 0.8008281904610115
+          bandwidthGbps: 6.027456183070403
+        recentActivities:
+        - id: id
+          user: user
+          action: action
+          target: target
+          time: time
+          type: upload
+        - id: id
+          user: user
+          action: action
+          target: target
+          time: time
+          type: upload
+        notifications:
+        - id: id
+          title: title
+          description: description
+          time: time
+          type: success
+        - id: id
+          title: title
+          description: description
+          time: time
+          type: success
+      properties:
+        trafficData:
+          items:
+            $ref: "#/components/schemas/_v1_dashboard_overview_get_200_response_trafficData_inner"
+          type: array
+          default: null
+        recentActivities:
+          items:
+            $ref: "#/components/schemas/_v1_dashboard_overview_get_200_response_recentActivities_inner"
+          type: array
+          default: null
+        notifications:
+          items:
+            $ref: "#/components/schemas/_v1_dashboard_overview_get_200_response_notifications_inner"
+          type: array
+          default: null
+      required:
+      - notifications
+      - recentActivities
+      - trafficData
+    _v1_dashboard_anime_get_200_response:
+      example:
+        animeList:
+        - ""
+        - ""
+        total: 0.8008281904610115
+        page: 6.027456183070403
+        limit: 1.4658129805029452
+      properties:
+        animeList:
+          items:
+            nullable: true
+          type: array
+          default: null
+        total:
+          type: number
+        page:
+          type: number
+        limit:
+          type: number
+      required:
+      - animeList
+      - limit
+      - page
+      - total
+    _v1_dashboard_episodes_get_200_response:
+      example:
+        episodes:
+        - ""
+        - ""
+        total: 0.8008281904610115
+        page: 6.027456183070403
+        limit: 1.4658129805029452
+      properties:
+        episodes:
+          items:
+            nullable: true
+          type: array
+          default: null
+        total:
+          type: number
+        page:
+          type: number
+        limit:
+          type: number
+      required:
+      - episodes
+      - limit
+      - page
+      - total
+    _v1_dashboard_users_get_200_response_users_inner:
+      example:
+        id: id
+        name: name
+        email: email
+        image: image
+        role: role
+        emailVerified: true
+        createdAt: createdAt
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        image:
+          type: string
+          nullable: true
+        role:
+          type: string
+        emailVerified:
+          type: boolean
+        createdAt:
+          type: string
+      required:
+      - createdAt
+      - email
+      - emailVerified
+      - id
+      - name
+      - role
+    _v1_dashboard_users_get_200_response:
+      example:
+        users:
+        - id: id
+          name: name
+          email: email
+          image: image
+          role: role
+          emailVerified: true
+          createdAt: createdAt
+        - id: id
+          name: name
+          email: email
+          image: image
+          role: role
+          emailVerified: true
+          createdAt: createdAt
+        total: 0.8008281904610115
+        page: 6.027456183070403
+        limit: 1.4658129805029452
+      properties:
+        users:
+          items:
+            $ref: "#/components/schemas/_v1_dashboard_users_get_200_response_users_inner"
+          type: array
+          default: null
+        total:
+          type: number
+        page:
+          type: number
+        limit:
+          type: number
+      required:
+      - limit
+      - page
+      - total
+      - users
+    _v1_dashboard_categories_get_200_response_categories_inner:
+      example:
+        id: id
+        code: code
+        name: name
+        slug: slug
+        animeCount: 0.8008281904610115
+        description: description
+        isActive: true
+        updatedAt: updatedAt
+      properties:
+        id:
+          type: string
+        code:
+          type: string
+        name:
+          type: string
+        slug:
+          type: string
+        animeCount:
+          type: number
+        description:
+          type: string
+        isActive:
+          type: boolean
+        updatedAt:
+          type: string
+      required:
+      - animeCount
+      - code
+      - description
+      - id
+      - isActive
+      - name
+      - slug
+      - updatedAt
+    _v1_dashboard_categories_get_200_response_genres_inner:
+      example:
+        id: id
+        name: name
+        slug: slug
+        animeCount: 6.027456183070403
+        isActive: true
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        slug:
+          type: string
+        animeCount:
+          type: number
+        isActive:
+          type: boolean
+      required:
+      - animeCount
+      - id
+      - isActive
+      - name
+      - slug
+    _v1_dashboard_categories_get_200_response:
+      example:
+        categories:
+        - id: id
+          code: code
+          name: name
+          slug: slug
+          animeCount: 0.8008281904610115
+          description: description
+          isActive: true
+          updatedAt: updatedAt
+        - id: id
+          code: code
+          name: name
+          slug: slug
+          animeCount: 0.8008281904610115
+          description: description
+          isActive: true
+          updatedAt: updatedAt
+        genres:
+        - id: id
+          name: name
+          slug: slug
+          animeCount: 6.027456183070403
+          isActive: true
+        - id: id
+          name: name
+          slug: slug
+          animeCount: 6.027456183070403
+          isActive: true
+      properties:
+        categories:
+          items:
+            $ref: "#/components/schemas/_v1_dashboard_categories_get_200_response_categories_inner"
+          type: array
+          default: null
+        genres:
+          items:
+            $ref: "#/components/schemas/_v1_dashboard_categories_get_200_response_genres_inner"
+          type: array
+          default: null
+      required:
+      - categories
+      - genres
+    _v1_dashboard_seasons_get_200_response_seasons_inner:
+      example:
+        id: id
+        year: 0.8008281904610115
+        quarter: quarter
+        name: name
+        totalAnime: 6.027456183070403
+        isCurrent: true
+        isActive: true
+      properties:
+        id:
+          type: string
+        year:
+          type: number
+        quarter:
+          type: string
+        name:
+          type: string
+        totalAnime:
+          type: number
+        isCurrent:
+          type: boolean
+        isActive:
+          type: boolean
+      required:
+      - id
+      - isActive
+      - isCurrent
+      - name
+      - quarter
+      - totalAnime
+      - year
+    _v1_dashboard_seasons_get_200_response:
+      example:
+        seasons:
+        - id: id
+          year: 0.8008281904610115
+          quarter: quarter
+          name: name
+          totalAnime: 6.027456183070403
+          isCurrent: true
+          isActive: true
+        - id: id
+          year: 0.8008281904610115
+          quarter: quarter
+          name: name
+          totalAnime: 6.027456183070403
+          isCurrent: true
+          isActive: true
+      properties:
+        seasons:
+          items:
+            $ref: "#/components/schemas/_v1_dashboard_seasons_get_200_response_seasons_inner"
+          type: array
+          default: null
+      required:
+      - seasons
+    _v1_dashboard_roles_get_200_response_roles_inner:
+      example:
+        id: id
+        name: name
+        slug: slug
+        description: description
+        memberCount: 0.8008281904610115
+        permissions:
+        - permissions
+        - permissions
+        isDefault: true
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        slug:
+          type: string
+        description:
+          type: string
+        memberCount:
+          type: number
+        permissions:
+          items:
+            type: string
+          type: array
+          default: null
+        isDefault:
+          type: boolean
+      required:
+      - description
+      - id
+      - memberCount
+      - name
+      - permissions
+      - slug
+    _v1_dashboard_roles_get_200_response:
+      example:
+        roles:
+        - id: id
+          name: name
+          slug: slug
+          description: description
+          memberCount: 0.8008281904610115
+          permissions:
+          - permissions
+          - permissions
+          isDefault: true
+        - id: id
+          name: name
+          slug: slug
+          description: description
+          memberCount: 0.8008281904610115
+          permissions:
+          - permissions
+          - permissions
+          isDefault: true
+      properties:
+        roles:
+          items:
+            $ref: "#/components/schemas/_v1_dashboard_roles_get_200_response_roles_inner"
+          type: array
+          default: null
+      required:
+      - roles
+    _v1_dashboard_moderation_get_200_response_reports_inner_author:
+      example:
+        id: id
+        name: name
+        username: username
+        avatar: avatar
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        username:
+          type: string
+        avatar:
+          type: string
+      required:
+      - avatar
+      - id
+      - name
+      - username
+    _v1_dashboard_moderation_get_200_response_reports_inner_reporter:
+      example:
+        id: id
+        name: name
+        username: username
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        username:
+          type: string
+      required:
+      - id
+      - name
+      - username
+    _v1_dashboard_moderation_get_200_response_reports_inner:
+      example:
+        id: id
+        commentId: commentId
+        commentText: commentText
+        animeTitle: animeTitle
+        episodeNumber: 0.8008281904610115
+        author:
+          id: id
+          name: name
+          username: username
+          avatar: avatar
+        reporter:
+          id: id
+          name: name
+          username: username
+        reason: reason
+        status: status
+        reportedAt: reportedAt
+        flaggedBySystem: true
+      properties:
+        id:
+          type: string
+        commentId:
+          type: string
+        commentText:
+          type: string
+        animeTitle:
+          type: string
+        episodeNumber:
+          type: number
+        author:
+          $ref: "#/components/schemas/_v1_dashboard_moderation_get_200_response_reports_inner_author"
+        reporter:
+          $ref: "#/components/schemas/_v1_dashboard_moderation_get_200_response_reports_inner_reporter"
+        reason:
+          type: string
+        status:
+          type: string
+        reportedAt:
+          type: string
+        flaggedBySystem:
+          type: boolean
+      required:
+      - animeTitle
+      - author
+      - commentId
+      - commentText
+      - episodeNumber
+      - flaggedBySystem
+      - id
+      - reason
+      - reportedAt
+      - reporter
+      - status
+    _v1_dashboard_moderation_get_200_response:
+      example:
+        reports:
+        - id: id
+          commentId: commentId
+          commentText: commentText
+          animeTitle: animeTitle
+          episodeNumber: 0.8008281904610115
+          author:
+            id: id
+            name: name
+            username: username
+            avatar: avatar
+          reporter:
+            id: id
+            name: name
+            username: username
+          reason: reason
+          status: status
+          reportedAt: reportedAt
+          flaggedBySystem: true
+        - id: id
+          commentId: commentId
+          commentText: commentText
+          animeTitle: animeTitle
+          episodeNumber: 0.8008281904610115
+          author:
+            id: id
+            name: name
+            username: username
+            avatar: avatar
+          reporter:
+            id: id
+            name: name
+            username: username
+          reason: reason
+          status: status
+          reportedAt: reportedAt
+          flaggedBySystem: true
+      properties:
+        reports:
+          items:
+            $ref: "#/components/schemas/_v1_dashboard_moderation_get_200_response_reports_inner"
+          type: array
+          default: null
+      required:
+      - reports
+    _v1_dashboard_moderation__id__patch_request:
+      properties:
+        status:
+          enum:
+          - resolved
+          - dismissed
+          type: string
+        action:
+          default: keep
+          enum:
+          - delete_comment
+          - keep
+          type: string
+      required:
+      - status
+    _v1_upload_hls_post_200_response_data:
+      example:
+        url: url
+        key: key
+        sizeBytes: 0.8008281904610115
+        totalFiles: 6.027456183070403
+      properties:
+        url:
+          type: string
+        key:
+          type: string
+        sizeBytes:
+          type: number
+        totalFiles:
+          type: number
+      required:
+      - key
+      - sizeBytes
+      - totalFiles
+      - url
+    _v1_upload_hls_post_200_response:
+      example:
+        success: true
+        data:
+          url: url
+          key: key
+          sizeBytes: 0.8008281904610115
+          totalFiles: 6.027456183070403
+      properties:
+        success:
+          enum:
+          - true
+          type: boolean
+        data:
+          $ref: "#/components/schemas/_v1_upload_hls_post_200_response_data"
+      required:
+      - data
+      - success
+    _v1_upload_image_post_200_response_data:
+      example:
+        url: url
+        key: key
+        sizeBytes: 0.8008281904610115
+      properties:
+        url:
+          type: string
+        key:
+          type: string
+        sizeBytes:
+          type: number
+      required:
+      - key
+      - sizeBytes
+      - url
+    _v1_upload_image_post_200_response:
+      example:
+        success: true
+        data:
+          url: url
+          key: key
+          sizeBytes: 0.8008281904610115
+      properties:
+        success:
+          enum:
+          - true
+          type: boolean
+        data:
+          $ref: "#/components/schemas/_v1_upload_image_post_200_response_data"
+      required:
+      - data
+      - success
+  securitySchemes:
+    Bearer:
+      bearerFormat: JWT / API-Key
+      description: Provide a Better Auth session token or Bearer API key.
+      scheme: bearer
+      type: http
